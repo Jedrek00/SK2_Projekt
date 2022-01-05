@@ -17,12 +17,11 @@
 #define MAX_TOPICS 10
 #define MAX_USERS 3
 
-pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
-
+pthread_mutex_t topics_num_m = PTHREAD_MUTEX_INITIALIZER;
 pthread_t threads[MAX_USERS];
-int connection_client_descriptors[MAX_USERS];
+
 char topics[MAX_TOPICS][10];
-int num_of_topics;
+int connection_client_descriptors[MAX_USERS];
 int subscriptions[MAX_USERS][MAX_TOPICS] = {0};
 
 
@@ -31,6 +30,7 @@ struct thread_data_t
 {
     int serverStatus;
     int socket_nr;
+    int *topics_num;
     char tekst[111];
 };
 
@@ -191,7 +191,8 @@ void *ThreadBehavior(void *t_data)
             // Dodanie tematu
             if(strncmp((*th_data).tekst, "a", 1) == 0)
             {        
-                if(num_of_topics < MAX_TOPICS)
+                pthread_mutex_lock(&topics_num_m);
+                if(*(*th_data).topics_num < MAX_TOPICS)
                 {
                     if(topicExist(mess.tytul) != -1)
                     {
@@ -199,10 +200,10 @@ void *ThreadBehavior(void *t_data)
                     }
                     else
                     {
-                        strcpy(topics[num_of_topics], mess.tytul);
-                        printf("Dodano nowy temat: %s\n", topics[num_of_topics]);
-                        num_of_topics++;
-                        for(int i = 0; i < num_of_topics; i++)
+                        strcpy(topics[*(*th_data).topics_num], mess.tytul);
+                        printf("Dodano nowy temat: %s\n", topics[*(*th_data).topics_num]);
+                        *(*th_data).topics_num += 1;
+                        for(int i = 0; i < *(*th_data).topics_num; i++)
                         {
                             printf("Temat %d: %s\n", i, topics[i]);
                         }
@@ -212,6 +213,7 @@ void *ThreadBehavior(void *t_data)
                 {
                     printf("Przekroczono maksymalna ilosc tematow!\n");
                 }
+                pthread_mutex_unlock(&topics_num_m);
             }
             // Subskrypcja tematu
             if(strncmp((*th_data).tekst, "f", 1) == 0)
@@ -266,6 +268,7 @@ int main(int argc, char *argv[])
     int connection_socket_descriptor;
     int bind_result;
     int listen_result;
+    int topics_num = 4;
     char reuse_addr_val = 1;
     struct sockaddr_in server_address;
 
@@ -273,8 +276,6 @@ int main(int argc, char *argv[])
     strcpy(topics[1], "e-sport");
     strcpy(topics[2], "books");
     strcpy(topics[3], "computers");
-
-    num_of_topics = 4;
 
     //inicjalizacja gniazda serwera
 
@@ -312,6 +313,7 @@ int main(int argc, char *argv[])
 
     struct thread_data_t *t_data = malloc(sizeof(struct thread_data_t));
     (*t_data).serverStatus = 1;
+    (*t_data).topics_num = &topics_num;
 
     while (1)
     {
@@ -337,7 +339,8 @@ int main(int argc, char *argv[])
             }
         }
     }
-
     close(server_socket_descriptor);
+    free(t_data);
+    pthread_mutex_destroy(&topics_num_m);
     return (0);
 }
