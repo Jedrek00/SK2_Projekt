@@ -16,11 +16,13 @@
 #define QUEUE_SIZE 5
 #define MAX_TOPICS 10
 #define MAX_USERS 3
+#define TOPIC_LENGTH 10
 
 pthread_mutex_t topics_num_m = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t subs_m = PTHREAD_MUTEX_INITIALIZER;
 pthread_t threads[MAX_USERS];
 
-char topics[MAX_TOPICS][10];
+char topics[MAX_TOPICS][TOPIC_LENGTH];
 int connection_client_descriptors[MAX_USERS];
 int subscriptions[MAX_USERS][MAX_TOPICS] = {0};
 
@@ -37,7 +39,7 @@ struct thread_data_t
 struct message
 {
     char akcja;
-    char tytul[10];
+    char tytul[TOPIC_LENGTH];
     char tekst[100];
 };
 
@@ -69,11 +71,11 @@ int writeError(int flag)
 }
 
 
-int topicExist(char topic[10])
+int topicExist(char topic[TOPIC_LENGTH])
 {
     for(int i = 0; i < MAX_TOPICS; i ++)
     {
-        if(strncmp(topics[i], topic, 10) == 0)
+        if(strncmp(topics[i], topic, TOPIC_LENGTH) == 0)
             return i;
     }
     return -1;
@@ -140,13 +142,13 @@ void *ThreadBehavior(void *t_data)
         {
             struct message mess;
             mess.akcja = (*th_data).tekst[0];
-            for(int i = 1; i < 11; i++)
+            for(int i = 1; i < TOPIC_LENGTH + 1; i++)
             {
                 mess.tytul[i - 1] = (*th_data).tekst[i];
             }
-            for(int i = 11; i < 111; i++)
+            for(int i = TOPIC_LENGTH + 1; i < 111; i++)
             {
-                mess.tekst[i - 11] = (*th_data).tekst[i];
+                mess.tekst[i - TOPIC_LENGTH - 1] = (*th_data).tekst[i];
             }
             //printf("Akcja: %c,\nTytul: %s,\nTresc: %s", mess.akcja, mess.tytul, mess.tekst);
 
@@ -221,6 +223,7 @@ void *ThreadBehavior(void *t_data)
                 int index = topicExist(mess.tytul);
                 if(index != -1)
                 {
+                    pthread_mutex_lock(&subs_m);
                     if(subscriptions[nr][index] == 1)
                     {
                         printf("Uzytkownik %d juz subskrybuje temat %s!\n", nr, topics[index]);
@@ -230,6 +233,7 @@ void *ThreadBehavior(void *t_data)
                         subscriptions[nr][index] = 1;
                         printSubs();
                     }
+                    pthread_mutex_unlock(&subs_m);
                 }
                 else
                 {
@@ -242,6 +246,7 @@ void *ThreadBehavior(void *t_data)
                 int index = topicExist(mess.tytul);
                 if(index != -1)
                 {
+                    pthread_mutex_lock(&subs_m);
                     if(subscriptions[nr][index] == 0)
                     {
                         printf("Uzytkownik %d nie subskrybuje tematu %s!\n", nr, topics[index]);
@@ -251,6 +256,7 @@ void *ThreadBehavior(void *t_data)
                         subscriptions[nr][index] = 0;
                         printSubs();
                     }
+                    pthread_mutex_unlock(&subs_m);
                 }
                 else
                 {
@@ -342,5 +348,6 @@ int main(int argc, char *argv[])
     close(server_socket_descriptor);
     free(t_data);
     pthread_mutex_destroy(&topics_num_m);
+    pthread_mutex_destroy(&subs_m);
     return (0);
 }
