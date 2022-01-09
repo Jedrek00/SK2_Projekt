@@ -15,10 +15,12 @@
 
 void func(int sockfd)
 {
-   char buff[111];
+   char buff[302];
    char action[BUFSIZ];
-   char title[10];
-   char text[100];
+   char title[99];
+   char text[200];
+   int topic_len;
+   char topic_len_char[10];
    int pid = fork();
    if (pid == 0)
    {
@@ -27,25 +29,42 @@ void func(int sockfd)
       {
          // bzero(buff, sizeof(buff));
          printf("MENU\n"
-         "1. Dodaj temat\n"
-         "2. Wyslij wiadomosc\n"
-         "3. Zasubskrybuj temat\n"
-         "4. Anuluj Subskrypcje\n"
-         "0. Wyjscie\n"
-         "Podaj opcje: ");
+                "1. Dodaj temat\n"
+                "2. Wyslij wiadomosc\n"
+                "3. Zasubskrybuj temat\n"
+                "4. Anuluj Subskrypcje\n"
+                "0. Wyjscie\n"
+                "Podaj opcje: ");
          fgets(action, sizeof(action), stdin);
          input_value = atoi(action);
+         if (input_value != 0)
+         {
+            printf("Podaj tytul: ");
+            fgets(title, sizeof(title), stdin);
+            title[strcspn(title, "\n")] = 0;
+            topic_len = strlen(title);
+            int output = snprintf(topic_len_char, sizeof(topic_len_char), "%d", topic_len);
+            if (topic_len < 10)
+            {
+               buff[1] = '0';
+               buff[2] = topic_len_char[0];
+            }
+            else
+            {
+               buff[1] = topic_len_char[0];
+               buff[2] = topic_len_char[1];
+            }
+            for (int i = 3; i < 99 + 3; i++)
+            {
+               buff[i] = title[i - 3];
+            }
+            printf("%s\n", buff);
+         }
+
          switch (input_value)
          {
          case 1:
             buff[0] = 'a';
-            printf("Podaj tytul: ");
-            fgets(title, sizeof(title), stdin);
-            title[strcspn(title, "\n")] = 0;
-            for (int i = 1; i < 11; i++)
-            {
-               buff[i] = title[i - 1];
-            }
             write(sockfd, buff, sizeof(buff));
             bzero(buff, sizeof(buff));
             bzero(title, sizeof(title));
@@ -53,21 +72,21 @@ void func(int sockfd)
             break;
 
          case 2:
-            printf("Podaj tytul: ");
-            fgets(title, sizeof(title), stdin);
-            title[strcspn(title, "\n")] = 0;
+            buff[0] = 's';
+            // printf("Podaj tytul: ");
+            // fgets(title, sizeof(title), stdin);
+            // title[strcspn(title, "\n")] = 0;
             printf("Podaj tresc: ");
             fgets(text, sizeof(text), stdin);
             text[strcspn(text, "\n")] = 0;
             printf("Text: %s\n", text);
-            buff[0] = 's';
-            for (int i = 1; i < 11; i++)
+            // for (int i = 1; i < 11; i++)
+            // {
+            //    buff[i] = title[i - 1];
+            // }
+            for (int i = topic_len + 3; i < 302; i++)
             {
-               buff[i] = title[i - 1];
-            }
-            for (int i = 11; i < 111; i++)
-            {
-               buff[i] = text[i - 11];
+               buff[i] = text[i - topic_len - 3];
             }
             printf("%s \n", buff);
             write(sockfd, buff, sizeof(buff));
@@ -78,13 +97,13 @@ void func(int sockfd)
 
          case 3:
             buff[0] = 'f';
-            printf("Podaj tytul: ");
-            fgets(title, sizeof(title), stdin);
-            title[strcspn(title, "\n")] = 0;
-            for (int i = 1; i < 11; i++)
-            {
-               buff[i] = title[i - 1];
-            }
+            // printf("Podaj tytul: ");
+            // fgets(title, sizeof(title), stdin);
+            // title[strcspn(title, "\n")] = 0;
+            // for (int i = 1; i < 11; i++)
+            // {
+            //    buff[i] = title[i - 1];
+            // }
             write(sockfd, buff, sizeof(buff));
             bzero(buff, sizeof(buff));
             bzero(title, sizeof(title));
@@ -93,13 +112,13 @@ void func(int sockfd)
 
          case 4:
             buff[0] = 'u';
-            printf("Podaj tytul: ");
-            fgets(title, sizeof(title), stdin);
-            title[strcspn(title, "\n")] = 0;
-            for (int i = 1; i < 11; i++)
-            {
-               buff[i] = title[i - 1];
-            }
+            // printf("Podaj tytul: ");
+            // fgets(title, sizeof(title), stdin);
+            // title[strcspn(title, "\n")] = 0;
+            // for (int i = 1; i < 11; i++)
+            // {
+            //    buff[i] = title[i - 1];
+            // }
             write(sockfd, buff, sizeof(buff));
             bzero(buff, sizeof(buff));
             bzero(title, sizeof(title));
