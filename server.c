@@ -12,14 +12,15 @@
 #include <time.h>
 #include <pthread.h>
 
-#define SERVER_PORT 1234
+#define SERVER_PORT 1235
 #define QUEUE_SIZE 5
 #define MAX_TOPICS 10
 #define MAX_USERS 3
-#define TOPIC_LENGTH 10
+#define TOPIC_LENGTH 99
 
-pthread_mutex_t topics_num_m = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t subs_m = PTHREAD_MUTEX_INITIALIZER;
+// pthread_mutex_t topics_m = PTHREAD_MUTEX_INITIALIZER;
+// pthread_mutex_t subs_m = PTHREAD_MUTEX_INITIALIZER;
+// pthread_mutex_t users_m = PTHREAD_MUTEX_INITIALIZER;
 pthread_t threads[MAX_USERS];
 
 char topics[MAX_TOPICS][TOPIC_LENGTH];
@@ -33,14 +34,15 @@ struct thread_data_t
     int serverStatus;
     int socket_nr;
     int *topics_num;
-    char tekst[111];
+    char tekst[302];
 };
 
 struct message
 {
     char akcja;
+    int topic_len;
     char tytul[TOPIC_LENGTH];
-    char tekst[100];
+    //char tekst[200];
 };
 
 
@@ -117,8 +119,9 @@ void *ThreadBehavior(void *t_data)
 {
     pthread_detach(pthread_self());
     struct thread_data_t *th_data = (struct thread_data_t *)t_data;
-
+    char topic_len[2];
     int nr = (*th_data).socket_nr;
+    struct message mess;
 
     while (1)
     {
@@ -126,9 +129,9 @@ void *ThreadBehavior(void *t_data)
         {
             break;
         }
-        //pthread_mutex_lock(&m);
+        //pthread_mutex_lock(&users_m);
         int errR = readError(read(connection_client_descriptors[nr], (*th_data).tekst, sizeof((*th_data).tekst)));
-        //pthread_mutex_unlock(&m);
+        //pthread_mutex_unlock(&users_m);
         if (errR == -1)
         {
             exit(1);
@@ -140,37 +143,54 @@ void *ThreadBehavior(void *t_data)
         }
         else
         {
-            struct message mess;
             mess.akcja = (*th_data).tekst[0];
-            for(int i = 1; i < TOPIC_LENGTH + 1; i++)
+            if(strncmp((*th_data).tekst, "e", 1) != 0)
             {
-                mess.tytul[i - 1] = (*th_data).tekst[i];
+                for(int i = 1; i <  3; i++)
+                {
+                    topic_len[i - 1] = (*th_data).tekst[i];
+                }
+                mess.topic_len = atoi(topic_len);
+                bzero(mess.tytul, sizeof(mess.tytul));
+                for(int i = 3; i < mess.topic_len + 3; i++)
+                {
+                    mess.tytul[i - 3] = (*th_data).tekst[i];
+                }
+                // BUS Error
+                // if(strncmp((*th_data).tekst, "s", 1) == 0)
+                // {
+                //     bzero(mess.tekst, sizeof(mess.tekst));
+                //     for(int i = mess.topic_len + 3; i < 302; i++)
+                //     {
+                //         mess.tekst[i - mess.topic_len - 3] = (*th_data).tekst[i];
+                //     }
+                //     //printf("Akcja: %c,\nTytul: %s,\nTresc: %s\n", mess.akcja, mess.tytul, mess.tekst);
+                // }
             }
-            for(int i = TOPIC_LENGTH + 1; i < 111; i++)
-            {
-                mess.tekst[i - TOPIC_LENGTH - 1] = (*th_data).tekst[i];
-            }
-            //printf("Akcja: %c,\nTytul: %s,\nTresc: %s", mess.akcja, mess.tytul, mess.tekst);
-
             // Rozlaczenie z serwerem
             if(strncmp((*th_data).tekst, "e", 1) == 0)
             {
-                printf("Rozloczono klienta o numerze: %d\n", nr);
+                printf("Rozlonczono klienta o numerze: %d\n", nr);
                 // Wyzerowanie subskrypcji
                 for(int i = 0; i < MAX_TOPICS; i++)
                 {
                     subscriptions[nr][i] = 0;
                 }
+                //pthread_mutex_lock(&users_m);
                 write(connection_client_descriptors[nr], (*th_data).tekst, sizeof((*th_data).tekst));
                 connection_client_descriptors[nr] = -1;
+               // pthread_mutex_unlock(&users_m);
                 break;
             }
             // Wyslanie wiadomosci
             if(strncmp((*th_data).tekst, "s", 1) == 0)
             {
+            //pthread_mutex_lock(&topics_m);
             int topic_index = topicExist(mess.tytul);
+            //pthread_mutex_unlock(&topics_m);
             for (int j = 0; j < MAX_USERS; j++)
                 {
+                    //pthread_mutex_lock(&users_m);
                     if (j != nr && connection_client_descriptors[j] != -1 && subscriptions[j][topic_index] == 1)
                     {
                         printf("Wysylam wiadomosc o temacie %s do %d\n", topics[topic_index], j);
@@ -188,12 +208,13 @@ void *ThreadBehavior(void *t_data)
                             break;
                         }
                     }
+                    //pthread_mutex_unlock(&users_m);
                 }
             }
             // Dodanie tematu
             if(strncmp((*th_data).tekst, "a", 1) == 0)
             {        
-                pthread_mutex_lock(&topics_num_m);
+                //pthread_mutex_lock(&topics_m);
                 if(*(*th_data).topics_num < MAX_TOPICS)
                 {
                     if(topicExist(mess.tytul) != -1)
@@ -215,15 +236,17 @@ void *ThreadBehavior(void *t_data)
                 {
                     printf("Przekroczono maksymalna ilosc tematow!\n");
                 }
-                pthread_mutex_unlock(&topics_num_m);
+                //pthread_mutex_unlock(&topics_m);
             }
             // Subskrypcja tematu
             if(strncmp((*th_data).tekst, "f", 1) == 0)
             {
+                //pthread_mutex_lock(&topics_m);
                 int index = topicExist(mess.tytul);
+                //pthread_mutex_lock(&topics_m);
                 if(index != -1)
                 {
-                    pthread_mutex_lock(&subs_m);
+                    //pthread_mutex_lock(&subs_m);
                     if(subscriptions[nr][index] == 1)
                     {
                         printf("Uzytkownik %d juz subskrybuje temat %s!\n", nr, topics[index]);
@@ -233,7 +256,7 @@ void *ThreadBehavior(void *t_data)
                         subscriptions[nr][index] = 1;
                         printSubs();
                     }
-                    pthread_mutex_unlock(&subs_m);
+                    //pthread_mutex_unlock(&subs_m);
                 }
                 else
                 {
@@ -243,10 +266,12 @@ void *ThreadBehavior(void *t_data)
             // Anulowanie Subskrypcji
             if(strncmp((*th_data).tekst, "u", 1) == 0)
             {
+                // pthread_mutex_lock(&topics_m);
                 int index = topicExist(mess.tytul);
+                // pthread_mutex_lock(&topics_m);
                 if(index != -1)
                 {
-                    pthread_mutex_lock(&subs_m);
+                    //pthread_mutex_lock(&subs_m);
                     if(subscriptions[nr][index] == 0)
                     {
                         printf("Uzytkownik %d nie subskrybuje tematu %s!\n", nr, topics[index]);
@@ -256,7 +281,7 @@ void *ThreadBehavior(void *t_data)
                         subscriptions[nr][index] = 0;
                         printSubs();
                     }
-                    pthread_mutex_unlock(&subs_m);
+                    //pthread_mutex_unlock(&subs_m);
                 }
                 else
                 {
@@ -315,8 +340,6 @@ int main(int argc, char *argv[])
     for (int i = 0; i < sizeof(connection_client_descriptors) / sizeof(int); i++)
         connection_client_descriptors[i] = -1;
 
-    // printf("Sizeof connection client descriptors: %ld\n", sizeof(connection_client_descriptors));
-
     struct thread_data_t *t_data = malloc(sizeof(struct thread_data_t));
     (*t_data).serverStatus = 1;
     (*t_data).topics_num = &topics_num;
@@ -333,8 +356,7 @@ int main(int argc, char *argv[])
         for (int i = 0; i < MAX_USERS; i++)
             printf("Klient id: %d\n", connection_client_descriptors[i]);
         if (nr >= 0)
-        {
-            
+        {   
             (*t_data).socket_nr = nr;
             int create_result = pthread_create(&threads[nr], NULL, ThreadBehavior, (void *)t_data);
             if (create_result)
@@ -347,7 +369,8 @@ int main(int argc, char *argv[])
     }
     close(server_socket_descriptor);
     free(t_data);
-    pthread_mutex_destroy(&topics_num_m);
-    pthread_mutex_destroy(&subs_m);
+    //pthread_mutex_destroy(&topics_m);
+    //pthread_mutex_destroy(&subs_m);
+    //pthread_mutex_destroy(&users_m);
     return (0);
 }
