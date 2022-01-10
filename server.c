@@ -12,7 +12,7 @@
 #include <time.h>
 #include <pthread.h>
 
-#define SERVER_PORT 1235
+#define SERVER_PORT 1236
 #define QUEUE_SIZE 5
 #define MAX_TOPICS 10
 #define MAX_USERS 3
