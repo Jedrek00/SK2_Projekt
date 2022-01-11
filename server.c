@@ -17,6 +17,7 @@
 #define MAX_TOPICS 10
 #define MAX_USERS 3
 #define TOPIC_LENGTH 99
+#define MAX_MESSAGES 100
 
 // pthread_mutex_t topics_m = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t subs_m = PTHREAD_MUTEX_INITIALIZER;
@@ -26,7 +27,7 @@ pthread_t threads[MAX_USERS];
 char topics[MAX_TOPICS][TOPIC_LENGTH];
 int connection_client_descriptors[MAX_USERS];
 int subscriptions[MAX_USERS][MAX_TOPICS] = {0};
-
+char messages[MAX_TOPICS][MAX_MESSAGES][302];
 
 
 //struktura zawierająca dane, które zostaną przekazane do wątku
@@ -46,6 +47,26 @@ struct message
     //char tekst[200];
 };
 
+int findFreeIndex(int topic)
+{
+    for(int i=0; i < MAX_MESSAGES; i++)
+    {
+        if(strlen(messages[topic][i]) == 0)
+            return i;
+    }
+    return -1;
+}
+
+int numberOfMess(int user)
+{
+    int sum = 0;
+    for(int i = 0; i < MAX_TOPICS; i++)
+    {
+        if(subscriptions[user][i] == 1)
+            sum += (findFreeIndex(i));
+    }
+    return sum;
+}
 
 int readError(int flag)
 {
@@ -176,6 +197,7 @@ void *ThreadBehavior(void *t_data)
                 //     //printf("Akcja: %c,\nTytul: %s,\nTresc: %s\n", mess.akcja, mess.tytul, mess.tekst);
                 // }
             }
+
             // Rozlaczenie z serwerem
             if(strncmp((*th_data).tekst, "e", 1) == 0)
             {
@@ -191,11 +213,45 @@ void *ThreadBehavior(void *t_data)
                // pthread_mutex_unlock(&users_m);
                 break;
             }
+            //wysyłanie tematów
+            if(strncmp((*th_data).tekst, "t", 1) == 0)
+            {
+                char str[2];
+                bzero(str, sizeof(str));
+                sprintf(str, "%d", *(*th_data).topics_num);
+                write(connection_client_descriptors[nr], str, sizeof(str));
+                for(int i=0; i<*(*th_data).topics_num; i++)
+                {
+                    write(connection_client_descriptors[nr], topics[i], sizeof(topics[i]));
+                } 
+            }
+
+            //Odbieranie wiadomości
+            if(strncmp((*th_data).tekst, "w", 1) == 0)
+            {
+                char str[2];
+                bzero(str, sizeof(str));
+                sprintf(str, "%d", numberOfMess(nr));
+                printf("%d\n", numberOfMess(nr));
+                write(connection_client_descriptors[nr], str, sizeof(str));
+                for (int i=0; i<MAX_TOPICS; i++) 
+                {
+                    for(int j=0; j<findFreeIndex(i); j++)
+                    {
+                        if (subscriptions[nr][i] == 1)
+                        {
+                            write(connection_client_descriptors[nr], messages[i][j], sizeof(messages[i][j]));
+                        }
+                    }
+                }
+            }
+
             // Wyslanie wiadomosci
             if(strncmp((*th_data).tekst, "s", 1) == 0)
             {
             // pthread_mutex_lock(&topics_m);
             int topic_index = topicExist(mess.tytul);
+            int message_index = findFreeIndex(topic_index);
             // pthread_mutex_unlock(&topics_m);
             for (int j = 0; j < MAX_USERS; j++)
                 {
@@ -205,23 +261,48 @@ void *ThreadBehavior(void *t_data)
                     {
                         printf("Wysylam wiadomosc o temacie %s do %d\n", topics[topic_index], j);
                         printf("%s\n", (*th_data).tekst);
-                        int feedbackW = writeFeedback(write(connection_client_descriptors[j], (*th_data).tekst, sizeof((*th_data).tekst)));
-                        if (feedbackW == -1)
-                        {
-                            exit(1);
-                        }
-                        else if (feedbackW == 0)
-                        {
-                            connection_client_descriptors[j] = -1;
-                            break;
-                        }
+                        printf("%d\n", findFreeIndex(topic_index));
+                        if(message_index != -1) 
+                            strncpy(messages[topic_index][findFreeIndex(topic_index)], (*th_data).tekst, sizeof((*th_data).tekst));
                     }
+
+
+                    // for(int a = 0; a < *(*th_data).topics_num; a++)
+                    // {
+                    //     printf("TEMAT: %s\n", topics[a]);
+                    //     for(int b = 0; b < findFreeIndex(a); b++)
+                    //     {
+                    //         printf("-\t%s\n", messages[a][b]);
+                    //     }
+                    // }
+                    // int feedbackW = writeFeedback(write(connection_client_descriptors[j], (*th_data).tekst, sizeof((*th_data).tekst)));
+                    // if (feedbackW == -1)
+                    // {
+                    //     exit(1);
+                    // }
+                    // else if (feedbackW == 0)
+                    // {
+                    //     connection_client_descriptors[j] = -1;
+                    //     break;
+                    // }
                     //pthread_mutex_unlock(&users_m);
                 }
+                ////////////////////////////////////////////////////////
+                int feedbackW = writeFeedbackMsg(nr, "Wiadomość dotarła do serwera!");
+                if (feedbackW == -1)
+                {
+                    exit(1);
+                }
+                else if (feedbackW == 0)
+                {
+                    connection_client_descriptors[nr] = -1;
+                    break;
+                }
+                ///////////////////////////////////////////////////////
             }
             // Dodanie tematu
             if(strncmp((*th_data).tekst, "a", 1) == 0)
-            {        
+            {       
                 // pthread_mutex_lock(&topics_m);
                 if(*(*th_data).topics_num < MAX_TOPICS)
                 {
@@ -287,6 +368,18 @@ void *ThreadBehavior(void *t_data)
                     {
                         subscriptions[nr][index] = 1;
                         printSubs();
+                        ///////////////////////////////////////////////////////////
+                        int feedbackW = writeFeedbackMsg(nr, "Zasubskrybowano podany temat!");
+                        if (feedbackW == -1)
+                        {
+                            exit(1);
+                        }
+                        else if (feedbackW == 0)
+                        {
+                            connection_client_descriptors[nr] = -1;
+                            break;
+                        }
+                        ////////////////////////////////////////////////////////////
                     }
                     pthread_mutex_unlock(&subs_m);
                 }
@@ -314,6 +407,18 @@ void *ThreadBehavior(void *t_data)
                     {
                         subscriptions[nr][index] = 0;
                         printSubs();
+                        ///////////////////////////////////////////////////////////
+                        int feedbackW = writeFeedbackMsg(nr, "Anulowano subskrypcję podanego tematu!");
+                        if (feedbackW == -1)
+                        {
+                            exit(1);
+                        }
+                        else if (feedbackW == 0)
+                        {
+                            connection_client_descriptors[nr] = -1;
+                            break;
+                        }
+                        ////////////////////////////////////////////////////////////
                     }
                     pthread_mutex_unlock(&subs_m);
                 }
