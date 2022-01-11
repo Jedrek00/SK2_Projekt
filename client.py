@@ -54,6 +54,7 @@ def close_app(sockfd):
 
 #Funkcja dodająca nowy temat
 def add_topic(akcja, sockfd, entry, view):
+    error=""
     buff = akcja
     topic = str(entry.get())
     if len(topic) < 10:
@@ -61,7 +62,16 @@ def add_topic(akcja, sockfd, entry, view):
     buff+=str(len(topic))
     buff+=topic
     sockfd.send(buff.encode())
-    view.destroy()
+    error = str(sockfd.recv(1024).decode())
+    if error[0] == "r":
+        error_view = tk.Tk()
+        error_view.title("Błąd")
+        error_label = tk.Label(master = error_view, text=error[1:])
+        error_label.pack()
+        exit_button = tk.Button(master = error_view, text="OK", command=error_view.destroy)
+        exit_button.pack()
+    else: 
+        view.destroy()
 
 #Funkcja odpowiadająca za wprowadzanie nowych danych
 def insert_new_topic():
