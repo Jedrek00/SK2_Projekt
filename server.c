@@ -300,7 +300,6 @@ void *ThreadBehavior(void *t_data)
                         {
                             printf("Temat %d: %s\n", i, topics[i]);
                         }
-                        ////////////////////////////////////////////////////////
                         int feedbackW = writeFeedbackMsg(nr, "Dodano nowy temat!");
                         if (feedbackW == -1)
                         {
@@ -311,7 +310,6 @@ void *ThreadBehavior(void *t_data)
                             connection_client_descriptors[nr] = -1;
                             break;
                         }
-                        ///////////////////////////////////////////////////////
                     }
                 }
                 else
@@ -329,7 +327,7 @@ void *ThreadBehavior(void *t_data)
                 // pthread_mutex_lock(&topics_m);
                 if(index != -1)
                 {
-                    pthread_mutex_lock(&subs_m);
+                    // pthread_mutex_lock(&subs_m);
                     if(subscriptions[nr][index] == 1)
                     {
                         printf("Uzytkownik %d juz subskrybuje temat %s!\n", nr, topics[index]);
@@ -339,7 +337,6 @@ void *ThreadBehavior(void *t_data)
                     {
                         subscriptions[nr][index] = 1;
                         printSubs();
-                        ///////////////////////////////////////////////////////////
                         int feedbackW = writeFeedbackMsg(nr, "Zasubskrybowano podany temat!");
                         if (feedbackW == -1)
                         {
@@ -350,9 +347,8 @@ void *ThreadBehavior(void *t_data)
                             connection_client_descriptors[nr] = -1;
                             break;
                         }
-                        ////////////////////////////////////////////////////////////
                     }
-                    pthread_mutex_unlock(&subs_m);
+                    // pthread_mutex_unlock(&subs_m);
                 }
                 else
                 {
@@ -368,7 +364,7 @@ void *ThreadBehavior(void *t_data)
                 // pthread_mutex_lock(&topics_m);
                 if(index != -1)
                 {
-                    pthread_mutex_lock(&subs_m);
+                    // pthread_mutex_lock(&subs_m);
                     if(subscriptions[nr][index] == 0)
                     {
                         printf("Uzytkownik %d nie subskrybuje tematu %s!\n", nr, topics[index]);
@@ -378,7 +374,6 @@ void *ThreadBehavior(void *t_data)
                     {
                         subscriptions[nr][index] = 0;
                         printSubs();
-                        ///////////////////////////////////////////////////////////
                         int feedbackW = writeFeedbackMsg(nr, "Anulowano subskrypcję podanego tematu!");
                         if (feedbackW == -1)
                         {
@@ -389,9 +384,8 @@ void *ThreadBehavior(void *t_data)
                             connection_client_descriptors[nr] = -1;
                             break;
                         }
-                        ////////////////////////////////////////////////////////////
                     }
-                    pthread_mutex_unlock(&subs_m);
+                    // pthread_mutex_unlock(&subs_m);
                 }
                 else
                 {
