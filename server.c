@@ -249,44 +249,15 @@ void *ThreadBehavior(void *t_data)
             // Wyslanie wiadomosci
             if(strncmp((*th_data).tekst, "s", 1) == 0)
             {
-            // pthread_mutex_lock(&topics_m);
-            int topic_index = topicExist(mess.tytul);
-            int message_index = findFreeIndex(topic_index);
-            // pthread_mutex_unlock(&topics_m);
-            for (int j = 0; j < MAX_USERS; j++)
-                {
-                    //pthread_mutex_lock(&users_m);
-                    // dodanie subs_m ?
-                    if (j != nr && connection_client_descriptors[j] != -1 && subscriptions[j][topic_index] == 1)
-                    {
-                        printf("Wysylam wiadomosc o temacie %s do %d\n", topics[topic_index], j);
-                        printf("%s\n", (*th_data).tekst);
-                        printf("%d\n", findFreeIndex(topic_index));
-                        if(message_index != -1) 
-                            strncpy(messages[topic_index][findFreeIndex(topic_index)], (*th_data).tekst, sizeof((*th_data).tekst));
-                    }
-
-
-                    // for(int a = 0; a < *(*th_data).topics_num; a++)
-                    // {
-                    //     printf("TEMAT: %s\n", topics[a]);
-                    //     for(int b = 0; b < findFreeIndex(a); b++)
-                    //     {
-                    //         printf("-\t%s\n", messages[a][b]);
-                    //     }
-                    // }
-                    // int feedbackW = writeFeedback(write(connection_client_descriptors[j], (*th_data).tekst, sizeof((*th_data).tekst)));
-                    // if (feedbackW == -1)
-                    // {
-                    //     exit(1);
-                    // }
-                    // else if (feedbackW == 0)
-                    // {
-                    //     connection_client_descriptors[j] = -1;
-                    //     break;
-                    // }
-                    //pthread_mutex_unlock(&users_m);
-                }
+                // pthread_mutex_lock(&topics_m);
+                int topic_index = topicExist(mess.tytul);
+                int message_index = findFreeIndex(topic_index);
+                // pthread_mutex_unlock(&topics_m);
+                printf("Wysylam wiadomosc o temacie %s\n", topics[topic_index]);
+                printf("%s\n", (*th_data).tekst);
+                printf("%d\n", findFreeIndex(topic_index));
+                if(message_index != -1) 
+                    strncpy(messages[topic_index][findFreeIndex(topic_index)], (*th_data).tekst, sizeof((*th_data).tekst));
                 ////////////////////////////////////////////////////////
                 int feedbackW = writeFeedbackMsg(nr, "Wiadomość dotarła do serwera!");
                 if (feedbackW == -1)
