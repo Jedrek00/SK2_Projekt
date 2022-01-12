@@ -114,11 +114,12 @@ int addConnection(int client)
         {
             connection_client_descriptors[i] = client;
             fprintf(stderr, "Nawiązano nowe połączenie!\n");
+            write(client, "Nawiązano połączenie!\n", 100);
             return i;
         }
     }
     fprintf(stderr, "Serwer jest pełny!\n");
-    write(client, "exit\n", 100);
+    write(client, "rSerwer jest pełny! Spróbuj ponownie później\n", 100);
     return -1;
 }
 
@@ -155,6 +156,7 @@ void *ThreadBehavior(void *t_data)
 
     while (1)
     {
+        bzero((*th_data).tekst, sizeof((*th_data).tekst));
         if ((*th_data).serverStatus == 0)
         {
             break;

@@ -41,24 +41,30 @@ def buttons():
         yield b
 
 #Funkcja łącząca z serwerem
-def connect(label, server_addr, port):
+def connect(root, server_addr, port):
+    feedback_window = add_window()
+    button = add_button(feedback_window, "OK")
+    button.configure(command = feedback_window.destroy)
+
     try:
         connection_socket_description = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     except:
-        print("Błąd przy próbie utworzenia gniazda")
-        label.configure(text="Błąd przy próbie utworzenia gniazda")
+        add_label(feedback_window, "Nie udało się stworzyć socketu")
+        button.configure(command = lambda:[feedback_window.destroy(), root.destroy()])
 
-    try: 
-        connection_socket_description.connect((server_addr, port))
-    except:
-        print("Błąd przy próbie połączenia z serwerem")
-        label.configure(text="Błąd przy próbie połączenia z serwerem")
+    connection_socket_description.connect((server_addr, port))
+    feedback = str(connection_socket_description.recv(BUFFSIZE).decode())
     
+    if feedback[0] == "r":
+        add_label(feedback_window, feedback[1:])
+        button.configure(command = lambda:[feedback_window.destroy(), root.destroy()])
+    else:
+        add_label(feedback_window, feedback)
+
     return connection_socket_description
 
 #Funkcja kończąca działanie klienta
 def close_app(sockfd):
-    topics = []
     sockfd.send('e'.encode())
     sockfd.close()
     root.destroy()
@@ -72,7 +78,7 @@ def display_msg(sockfd):
     for i in range(int(message_num[0])):
         message = str(sockfd.recv(BUFFSIZE).decode())
         topic_length = int(message[1:3])
-        _ = add_label(messages_window, message[3+topic_length:])
+        _ = add_label(messages_window, message[3:3+topic_length] + ":\t" + message[3+topic_length:])
     exit_button = add_button(messages_window, "OK")
     exit_button.configure(command=messages_window.destroy)
 
@@ -132,6 +138,7 @@ def action(akcja, sockfd, entry, view, msg_entry = None):
         
         #Subskrybcja, dodawanie tematu, anulowanie subskrybcji
         else:
+            print(msg)
             sockfd.send(msg.encode())
             feedback = str(sockfd.recv(BUFFSIZE).decode())
             feedback_window = add_window(title = 'Server Feedback')
@@ -186,15 +193,12 @@ def send_message():
 #Stworzenie okna aplikacji
 root = add_window('600x400', "Publish/subscribe Client")
 
+#Łączenie się z serwerem
+sockfd = connect(root, args.server_address, int(args.port))
+
 add_label(root, "\nWitamy w aplikacji publish/subscribe!\n\n Wybierz jedną z poniższych opcji: \n")
 
 b1, b2, b3, b4, b5, b6, b7 = buttons()
-
-label = tk.Label(master = root)
-label.pack()
-
-#Łączenie się z serwerem
-sockfd = connect(label, args.server_address, int(args.port))
 
 #Przypisanie akcji do przycisków
 b1.configure(command=insert_topic)
