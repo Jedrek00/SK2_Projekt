@@ -158,6 +158,7 @@ void *ThreadBehavior(void *t_data)
     struct message mess;
     int feedbackW;
     char subscribed_topic[TOPIC_LENGTH];
+    char mark[2] = '*';
 
     while (1)
     {   
@@ -216,8 +217,9 @@ void *ThreadBehavior(void *t_data)
                 {
                     if(subscriptions[nr][i] == 1)
                     {
+                        bzero(subscribed_topic, sizeof(subscribed_topic));
                         strncpy(subscribed_topic, topics[i], TOPIC_LENGTH);
-                        subscribed_topic[strlen(topics[i])] = '*';
+                        strcat(subscribed_topic, mark);
                         write(connection_client_descriptors[nr], subscribed_topic, sizeof(topics[i]));
                     }
                     else
@@ -271,8 +273,6 @@ void *ThreadBehavior(void *t_data)
                     int message_index = findFreeIndex(topic_index);
                     // pthread_mutex_unlock(&topics_m);
                     printf("Wysylam wiadomosc o temacie %s\n", topics[topic_index]);
-                    //printf("%s\n", (*th_data).tekst);
-                    //printf("%d\n", findFreeIndex(topic_index));
                     if (message_index != -1)
                         strncpy(messages[topic_index][findFreeIndex(topic_index)], (*th_data).tekst, sizeof((*th_data).tekst));
 
