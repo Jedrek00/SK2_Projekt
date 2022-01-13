@@ -41,7 +41,7 @@ def buttons():
         yield b
 
 #Funkcja łącząca z serwerem
-def connect(root, server_addr, port):
+def connect(server_addr, port):
     feedback_window = add_window()
     button = add_button(feedback_window, "OK")
     button.configure(command = feedback_window.destroy)
@@ -50,18 +50,20 @@ def connect(root, server_addr, port):
         connection_socket_description = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     except:
         add_label(feedback_window, "Nie udało się stworzyć socketu")
-        button.configure(command = lambda:[feedback_window.destroy(), root.destroy()])
 
     connection_socket_description.connect((server_addr, port))
     feedback = str(connection_socket_description.recv(BUFFSIZE).decode())
     
     if feedback[0] == "r":
         add_label(feedback_window, feedback[1:])
-        button.configure(command = lambda:[feedback_window.destroy(), root.destroy()])
+        button.configure(command = lambda:[feedback_window.destroy(), exit()])
+        feedback_window.mainloop()
+        return None, None
     else:
         add_label(feedback_window, feedback)
-
-    return connection_socket_description
+        root = add_window('600x400', "Publish/subscribe Client")
+        add_label(root, "\nWitamy w aplikacji publish/subscribe!\n\n Wybierz jedną z poniższych opcji: \n")
+        return root, connection_socket_description
 
 #Funkcja kończąca działanie klienta
 def close_app(sockfd):
@@ -190,13 +192,11 @@ def send_message():
     window, entry, msg_entry, apply_button = send_message_view()
     apply_button.configure(command=lambda:action("s", sockfd, entry, window, msg_entry))
 
-#Stworzenie okna aplikacji
-root = add_window('600x400', "Publish/subscribe Client")
-
 #Łączenie się z serwerem
-sockfd = connect(root, args.server_address, int(args.port))
+root, sockfd = connect(args.server_address, int(args.port))
 
-add_label(root, "\nWitamy w aplikacji publish/subscribe!\n\n Wybierz jedną z poniższych opcji: \n")
+#Stworzenie okna aplikacji
+
 
 b1, b2, b3, b4, b5, b6, b7 = buttons()
 
@@ -210,5 +210,6 @@ b6.configure(command=lambda:display_msg(sockfd))
 b7.configure(command=lambda:close_app(sockfd))
 
 #Stworzenie okna
-root.mainloop()
+if root != None:
+    root.mainloop()
     
