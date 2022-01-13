@@ -24,7 +24,6 @@
 pthread_mutex_t topics_m = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t subs_m = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mess_m = PTHREAD_MUTEX_INITIALIZER;
-// pthread_mutex_t users_m = PTHREAD_MUTEX_INITIALIZER;
 pthread_t threads[MAX_USERS];
 
 char topics[MAX_TOPICS][TOPIC_LENGTH];
@@ -167,11 +166,9 @@ void *ThreadBehavior(void *t_data)
         {
             break;
         }
-        //pthread_mutex_lock(&users_m);
         bzero((*th_data).tekst, sizeof((*th_data).tekst));
         int errR = readError(read(connection_client_descriptors[nr], (*th_data).tekst, sizeof((*th_data).tekst)));
         printf("%s\n", (*th_data).tekst);
-        //pthread_mutex_unlock(&users_m);
         if (errR == -1)
         {
             exit(1);
@@ -199,11 +196,9 @@ void *ThreadBehavior(void *t_data)
             // Rozlaczenie z serwerem
             if (strncmp((*th_data).tekst, "e", 1) == 0)
             {
-                printf("Rozlonczono klienta o numerze: %d\n", nr);
-                //pthread_mutex_lock(&users_m);
+                printf("Rozlaczono klienta o numerze: %d\n", nr);
                 write(connection_client_descriptors[nr], (*th_data).tekst, sizeof((*th_data).tekst));
                 cleanAfterClient(nr);
-                // pthread_mutex_unlock(&users_m);
                 break;
             }
             //wysyłanie tematów
@@ -298,8 +293,8 @@ void *ThreadBehavior(void *t_data)
                 {
                     if (topicExist(mess.tytul) != -1)
                     {
-                        printf("Istniej juz temat o podanej nazwie!\n");
-                        feedbackW = writeFeedbackMsg(nr, "rIstniej juz temat o podanej nazwie!");
+                        printf("Istnieje juz temat o podanej nazwie!\n");
+                        feedbackW = writeFeedbackMsg(nr, "rIstnieje juz temat o podanej nazwie!");
                         if (feedbackW == -1)
                         {
                             exit(1);
@@ -526,6 +521,5 @@ int main(int argc, char *argv[])
     pthread_mutex_destroy(&topics_m);
     pthread_mutex_destroy(&subs_m);
     pthread_mutex_destroy(&mess_m);
-    //pthread_mutex_destroy(&users_m);
     return (0);
 }
