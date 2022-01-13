@@ -158,7 +158,7 @@ void *ThreadBehavior(void *t_data)
     struct message mess;
     int feedbackW;
     char subscribed_topic[TOPIC_LENGTH];
-    char mark[2] = '*';
+    char mark[2] = "*";
 
     while (1)
     {   
