@@ -140,15 +140,24 @@ void printSubs()
     }
 }
 
+void cleanAfterClient(int index)
+{
+    for (int i = 0; i < MAX_TOPICS; i++)
+    {
+        subscriptions[index][i] = 0;
+    }
+    connection_client_descriptors[index] = -1;
+}
+
 //funkcja opisującą zachowanie wątku - musi przyjmować argument typu (void *) i zwracać (void *)
 void *ThreadBehavior(void *t_data)
 {
     pthread_detach(pthread_self());
     struct thread_data_t *th_data = (struct thread_data_t *)t_data;
-    // char topic_len[2];
     int nr = (*th_data).socket_nr;
     struct message mess;
     int feedbackW;
+    char subscribed_topic[TOPIC_LENGTH];
 
     while (1)
     {   
@@ -175,13 +184,6 @@ void *ThreadBehavior(void *t_data)
             mess.akcja = (*th_data).tekst[0];
             if (strncmp((*th_data).tekst, "e", 1) != 0 && strncmp((*th_data).tekst, "t", 1) != 0 && strncmp((*th_data).tekst, "w", 1) != 0)
             {
-                // bzero(topic_len, sizeof(topic_len));
-                // for(int i = 1; i <  3; i++)
-                // {
-                //     topic_len[i - 1] = (*th_data).tekst[i];
-                // }
-                // printf("przed atoi: %s\n", topic_len);
-                // mess.topic_len = atoi(topic_len);
                 mess.topic_len = ((*th_data).tekst[1] - '0') * 10 + (*th_data).tekst[2] - '0';
                 bzero(mess.tytul, sizeof(mess.tytul));
                 printf("po atoi: %d\n", mess.topic_len);
@@ -197,13 +199,9 @@ void *ThreadBehavior(void *t_data)
             {
                 printf("Rozlonczono klienta o numerze: %d\n", nr);
                 // Wyzerowanie subskrypcji
-                for (int i = 0; i < MAX_TOPICS; i++)
-                {
-                    subscriptions[nr][i] = 0;
-                }
                 //pthread_mutex_lock(&users_m);
                 write(connection_client_descriptors[nr], (*th_data).tekst, sizeof((*th_data).tekst));
-                connection_client_descriptors[nr] = -1;
+                cleanAfterClient(nr);
                 // pthread_mutex_unlock(&users_m);
                 break;
             }
@@ -216,7 +214,16 @@ void *ThreadBehavior(void *t_data)
                 write(connection_client_descriptors[nr], str, sizeof(str));
                 for (int i = 0; i < *(*th_data).topics_num; i++)
                 {
-                    write(connection_client_descriptors[nr], topics[i], sizeof(topics[i]));
+                    if(subscriptions[nr][i] == 1)
+                    {
+                        strncpy(subscribed_topic, topics[i], TOPIC_LENGTH);
+                        subscribed_topic[strlen(topics[i])] = '*';
+                        write(connection_client_descriptors[nr], subscribed_topic, sizeof(topics[i]));
+                    }
+                    else
+                    {
+                        write(connection_client_descriptors[nr], topics[i], sizeof(topics[i]));
+                    }
                 }
             }
 
@@ -255,7 +262,7 @@ void *ThreadBehavior(void *t_data)
                         exit(1);
                     else if (feedbackW == 0)
                     {
-                        connection_client_descriptors[nr] = -1;
+                        cleanAfterClient(nr);
                         break;
                     }
                 }
@@ -274,7 +281,7 @@ void *ThreadBehavior(void *t_data)
                         exit(1);
                     else if (feedbackW == 0)
                     {
-                        connection_client_descriptors[nr] = -1;
+                        cleanAfterClient(nr);
                         break;
                     }
                 }
@@ -295,7 +302,7 @@ void *ThreadBehavior(void *t_data)
                         }
                         else if (feedbackW == 0)
                         {
-                            connection_client_descriptors[nr] = -1;
+                            cleanAfterClient(nr);
                             break;
                         }
                     }
@@ -313,7 +320,7 @@ void *ThreadBehavior(void *t_data)
                             exit(1);
                         else if (feedbackW == 0)
                         {
-                            connection_client_descriptors[nr] = -1;
+                            cleanAfterClient(nr);
                             break;
                         }
                     }
@@ -326,7 +333,7 @@ void *ThreadBehavior(void *t_data)
                         exit(1);
                     else if (feedbackW == 0)
                     {
-                        connection_client_descriptors[nr] = -1;
+                        cleanAfterClient(nr);
                         break;
                     }
                 }
@@ -349,7 +356,7 @@ void *ThreadBehavior(void *t_data)
                             exit(1);
                         else if (feedbackW == 0)
                         {
-                            connection_client_descriptors[nr] = -1;
+                            cleanAfterClient(nr);
                             break;
                         }
                     }
@@ -362,7 +369,7 @@ void *ThreadBehavior(void *t_data)
                             exit(1);
                         else if (feedbackW == 0)
                         {
-                            connection_client_descriptors[nr] = -1;
+                            cleanAfterClient(nr);
                             break;
                         }
                     }
@@ -376,7 +383,7 @@ void *ThreadBehavior(void *t_data)
                         exit(1);
                     else if (feedbackW == 0)
                     {
-                        connection_client_descriptors[nr] = -1;
+                        cleanAfterClient(nr);
                         break;
                     }
                 }
@@ -398,7 +405,7 @@ void *ThreadBehavior(void *t_data)
                             exit(1);
                         else if (feedbackW == 0)
                         {
-                            connection_client_descriptors[nr] = -1;
+                            cleanAfterClient(nr);
                             break;
                         }
                     }
@@ -411,7 +418,7 @@ void *ThreadBehavior(void *t_data)
                             exit(1);
                         else if (feedbackW == 0)
                         {
-                            connection_client_descriptors[nr] = -1;
+                            cleanAfterClient(nr);
                             break;
                         }
                     }
@@ -425,7 +432,7 @@ void *ThreadBehavior(void *t_data)
                         exit(1);
                     else if (feedbackW == 0)
                     {
-                        connection_client_descriptors[nr] = -1;
+                        cleanAfterClient(nr);
                         break;
                     }
                 }
